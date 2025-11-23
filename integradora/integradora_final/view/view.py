@@ -7,10 +7,7 @@ from tkinter import ttk, messagebox
 # --- Helpers -----------------------------------------------------------------
 
 def get_resource_path(relative_path: str) -> str:
-    """Obtiene la ruta absoluta al recurso, funciona para desarrollo y para ejecutables.
-
-    Siempre construye la ruta relativa al directorio del archivo view.py, no al cwd.
-    """
+    """Obtiene la ruta absoluta al recurso, funciona para desarrollo y para ejecutables."""
     try:
         base_path = sys._MEIPASS  # PyInstaller
     except Exception:
@@ -187,7 +184,8 @@ class RentasView:
             if os.path.exists(path):
                 img = Image.open(path)
             else:
-                raise FileNotFoundError(path)
+                # Crear un ícono simple de color sólido como fallback
+                img = Image.new('RGBA', size, (107, 47, 184, 255))
             icon = ctk.CTkImage(light_image=img, dark_image=img, size=size)
             return icon
         except Exception:
@@ -477,9 +475,12 @@ class RentasView:
             if not nombre:
                 messagebox.showerror("Error", "El nombre es obligatorio")
                 return
-            if self.controller.agregar_cliente(nombre, telefono, correo, direccion):
-                dialog.destroy()
-                messagebox.showinfo("Éxito", "Cliente agregado correctamente")
+            
+            # Cerrar el diálogo primero
+            dialog.destroy()
+            
+            # Luego procesar en el controller
+            self.controller.agregar_cliente(nombre, telefono, correo, direccion)
 
         def cancelar():
             dialog.destroy()
@@ -491,44 +492,53 @@ class RentasView:
 
     # ---------------- Métodos públicos que usa el controller -----------------
     def actualizar_eventos(self, eventos):
-        """Actualiza la lista de eventos dentro de la tarjeta de eventos.
-        Se espera una lista de strings ("Título - AAAA-MM-DD HH:MM").
-        """
-        texto = "Sin eventos programados."
-        if eventos:
-            texto = "\n".join(eventos[:5])
-        if hasattr(self, 'card_eventos_desc'):
+        """Actualiza la lista de eventos dentro de la tarjeta de eventos."""
+        try:
+            if not hasattr(self, 'card_eventos_desc') or not self.card_eventos_desc.winfo_exists():
+                return
+                
+            texto = "Sin eventos programados."
+            if eventos:
+                texto = "\n".join(eventos[:5])
             self.card_eventos_desc.configure(text=texto)
+        except Exception as e:
+            print(f"Error actualizando eventos: {e}")
 
     def actualizar_reservaciones(self, reservaciones, total_activas):
         """Rellena la tabla de reservaciones del dashboard."""
-        # Actualizar contador
-        if hasattr(self, 'lbl_total_activas'):
-            self.lbl_total_activas.configure(text=str(total_activas))
+        try:
+            # Actualizar contador
+            if hasattr(self, 'lbl_total_activas') and self.lbl_total_activas.winfo_exists():
+                self.lbl_total_activas.configure(text=str(total_activas))
 
-        # Limpiar tabla
-        if hasattr(self, 'tree'):
-            for row in self.tree.get_children():
-                self.tree.delete(row)
+            # Limpiar tabla
+            if hasattr(self, 'tree') and self.tree.winfo_exists():
+                for row in self.tree.get_children():
+                    self.tree.delete(row)
 
-            if not reservaciones:
-                if hasattr(self, 'lbl_sin_datos'):
-                    self.lbl_sin_datos.place(relx=0.5, rely=0.5, anchor="center")
-            else:
-                if hasattr(self, 'lbl_sin_datos'):
-                    self.lbl_sin_datos.place_forget()
-                for r in reservaciones:
-                    self.tree.insert("", "end", values=(
-                        r.get('articulo', ''),
-                        r.get('cliente', ''),
-                        r.get('estado', ''),
-                        r.get('fecha_entrega', ''),
-                        ""
-                    ))
+                if not reservaciones:
+                    if hasattr(self, 'lbl_sin_datos') and self.lbl_sin_datos.winfo_exists():
+                        self.lbl_sin_datos.place(relx=0.5, rely=0.5, anchor="center")
+                else:
+                    if hasattr(self, 'lbl_sin_datos') and self.lbl_sin_datos.winfo_exists():
+                        self.lbl_sin_datos.place_forget()
+                    for r in reservaciones:
+                        self.tree.insert("", "end", values=(
+                            r.get('articulo', ''),
+                            r.get('cliente', ''),
+                            r.get('estado', ''),
+                            r.get('fecha_entrega', ''),
+                            ""
+                        ))
+        except Exception as e:
+            print(f"Error actualizando reservaciones: {e}")
 
     def actualizar_clientes(self, total_clientes):
-        if hasattr(self, 'lbl_total_clientes'):
-            self.lbl_total_clientes.configure(text=str(total_clientes))
+        try:
+            if hasattr(self, 'lbl_total_clientes') and self.lbl_total_clientes.winfo_exists():
+                self.lbl_total_clientes.configure(text=str(total_clientes))
+        except Exception as e:
+            print(f"Error actualizando clientes: {e}")
 
     def mostrar_mensaje(self, titulo, mensaje):
         messagebox.showinfo(titulo, mensaje)
@@ -538,12 +548,19 @@ class RentasView:
         pass
 
     def actualizar_clientes_completos(self, clientes):
-        if hasattr(self, 'clientes_tree'):
+        """Actualización segura de la tabla de clientes"""
+        try:
+            if not hasattr(self, 'clientes_tree') or not self.clientes_tree.winfo_exists():
+                return
+                
+            # Limpiar tabla
             for row in self.clientes_tree.get_children():
                 self.clientes_tree.delete(row)
+                
             if clientes:
-                if hasattr(self, 'clientes_sin_datos'):
+                if hasattr(self, 'clientes_sin_datos') and self.clientes_sin_datos.winfo_exists():
                     self.clientes_sin_datos.place_forget()
+                    
                 for cliente in clientes:
                     self.clientes_tree.insert("", "end", values=(
                         cliente.get('nombre', ''),
@@ -553,8 +570,11 @@ class RentasView:
                         "Editar | Eliminar"
                     ))
             else:
-                if hasattr(self, 'clientes_sin_datos'):
+                if hasattr(self, 'clientes_sin_datos') and self.clientes_sin_datos.winfo_exists():
                     self.clientes_sin_datos.place(relx=0.5, rely=0.5, anchor="center")
+                    
+        except Exception as e:
+            print(f"Error actualizando clientes completos: {e}")
 
     def mostrar_dialogo_nueva_orden(self):
         self.mostrar_mensaje("Nueva Orden", "Funcionalidad para crear nueva orden en desarrollo")

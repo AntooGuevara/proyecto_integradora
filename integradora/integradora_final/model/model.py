@@ -28,11 +28,18 @@ class RentasModel:
 
     def obtener_cursor(self):
         """Devuelve un cursor dictionary, reintentando la conexión si es necesario"""
-        if not self.conexion or not self.conexion.is_connected():
-            self.conectar_bd()
-        if not self.conexion:
+        try:
+            if not self.conexion or not self.conexion.is_connected():
+                self.conectar_bd()
+            if self.conexion and self.conexion.is_connected():
+                return self.conexion.cursor(dictionary=True)
             return None
-        return self.conexion.cursor(dictionary=True)
+        except Error:
+            # Intentar reconectar una vez
+            self.conectar_bd()
+            if self.conexion and self.conexion.is_connected():
+                return self.conexion.cursor(dictionary=True)
+            return None
 
     # -------------------------
     # Autenticación / usuarios
@@ -473,7 +480,7 @@ class RentasModel:
             cursor.close()
 
     # -------------------------
-    # Utilidades
+    # Artículos
     # -------------------------
     def obtener_articulos_db(self):
         cursor = self.obtener_cursor()
@@ -488,9 +495,167 @@ class RentasModel:
         finally:
             cursor.close()
 
+    def obtener_articulo_por_id(self, articulo_id):
+        cursor = self.obtener_cursor()
+        if not cursor:
+            return None
+        try:
+            cursor.execute("SELECT * FROM articulos WHERE id = %s", (articulo_id,))
+            return cursor.fetchone()
+        except Error as e:
+            print(f"Error obteniendo artículo: {e}")
+            return None
+        finally:
+            cursor.close()
+
+    def actualizar_stock_articulo(self, articulo_id, cantidad):
+        cursor = self.obtener_cursor()
+        if not cursor:
+            return False
+        try:
+            query = "UPDATE articulos SET stock = stock - %s WHERE id = %s"
+            cursor.execute(query, (cantidad, articulo_id))
+            self.conexion.commit()
+            return cursor.rowcount > 0
+        except Error as e:
+            print(f"Error actualizando stock: {e}")
+            self.conexion.rollback()
+            return False
+        finally:
+            cursor.close()
+
+    # -------------------------
+    # Pagos
+    # -------------------------
+    def registrar_pago(self, reservacion_id, monto, metodo_pago, referencia=None):
+        cursor = self.obtener_cursor()
+        if not cursor:
+            return False
+        try:
+            query = """
+                INSERT INTO pagos (reservacion_id, monto, metodo_pago, referencia, fecha_pago)
+                VALUES (%s, %s, %s, %s, %s)
+            """
+            cursor.execute(query, (reservacion_id, monto, metodo_pago, referencia, datetime.now()))
+            self.conexion.commit()
+            return cursor.lastrowid
+        except Error as e:
+            print(f"Error registrando pago: {e}")
+            self.conexion.rollback()
+            return False
+        finally:
+            cursor.close()
+
+    def obtener_pagos_por_reservacion(self, reservacion_id):
+        cursor = self.obtener_cursor()
+        if not cursor:
+            return []
+        try:
+            cursor.execute("SELECT * FROM pagos WHERE reservacion_id = %s ORDER BY fecha_pago DESC", (reservacion_id,))
+            return cursor.fetchall()
+        except Error as e:
+            print(f"Error obteniendo pagos: {e}")
+            return []
+        finally:
+            cursor.close()
+
+    # -------------------------
+    # Reportes y estadísticas
+    # -------------------------
+    def obtener_estadisticas_generales(self):
+        cursor = self.obtener_cursor()
+        if not cursor:
+            return {}
+        try:
+            stats = {}
+            
+            # Total reservaciones este mes
+            cursor.execute("""
+                SELECT COUNT(*) as total 
+                FROM reservaciones 
+                WHERE MONTH(fecha_reservacion) = MONTH(CURRENT_DATE()) 
+                AND YEAR(fecha_reservacion) = YEAR(CURRENT_DATE())
+            """)
+            stats['reservaciones_mes'] = cursor.fetchone()['total']
+            
+            # Ingresos este mes
+            cursor.execute("""
+                SELECT COALESCE(SUM(total), 0) as ingresos 
+                FROM reservaciones 
+                WHERE MONTH(fecha_reservacion) = MONTH(CURRENT_DATE()) 
+                AND YEAR(fecha_reservacion) = YEAR(CURRENT_DATE())
+                AND estado != 'cancelada'
+            """)
+            stats['ingresos_mes'] = float(cursor.fetchone()['ingresos'])
+            
+            # Clientes nuevos este mes
+            cursor.execute("""
+                SELECT COUNT(*) as nuevos 
+                FROM clientes 
+                WHERE MONTH(fecha_registro) = MONTH(CURRENT_DATE()) 
+                AND YEAR(fecha_registro) = YEAR(CURRENT_DATE())
+            """)
+            stats['clientes_nuevos'] = cursor.fetchone()['nuevos']
+            
+            # Artículos más rentados
+            cursor.execute("""
+                SELECT a.nombre, COUNT(dr.id) as veces_rentado
+                FROM detalle_reservacion dr
+                JOIN articulos a ON dr.articulo_id = a.id
+                GROUP BY a.id, a.nombre
+                ORDER BY veces_rentado DESC
+                LIMIT 5
+            """)
+            stats['articulos_populares'] = cursor.fetchall()
+            
+            return stats
+        except Error as e:
+            print(f"Error obteniendo estadísticas: {e}")
+            return {}
+        finally:
+            cursor.close()
+
+    def obtener_reporte_ventas(self, fecha_inicio, fecha_fin):
+        cursor = self.obtener_cursor()
+        if not cursor:
+            return []
+        try:
+            query = """
+                SELECT r.id, c.nombre as cliente, r.fecha_reservacion, r.total, r.estado,
+                       GROUP_CONCAT(a.nombre SEPARATOR ', ') as articulos
+                FROM reservaciones r
+                LEFT JOIN clientes c ON r.cliente_id = c.id
+                LEFT JOIN detalle_reservacion dr ON r.id = dr.reservacion_id
+                LEFT JOIN articulos a ON dr.articulo_id = a.id
+                WHERE r.fecha_reservacion BETWEEN %s AND %s
+                GROUP BY r.id
+                ORDER BY r.fecha_reservacion DESC
+            """
+            cursor.execute(query, (fecha_inicio, fecha_fin))
+            return cursor.fetchall()
+        except Error as e:
+            print(f"Error obteniendo reporte de ventas: {e}")
+            return []
+        finally:
+            cursor.close()
+
+    # -------------------------
+    # Utilidades
+    # -------------------------
     def obtener_usuarios_conectados(self):
-        # Placeholder sencillo
+        # Placeholder sencillo - en un sistema real esto sería más complejo
         return 1
+
+    def backup_database(self, filepath):
+        """Realiza un backup de la base de datos (concepto)"""
+        # Esta es una implementación conceptual
+        # En producción se usaría mysqldump o herramientas específicas
+        try:
+            print(f"Backup conceptual realizado en: {filepath}")
+            return True
+        except Exception as e:
+            print(f"Error en backup: {e}")
+            return False
 
     def __del__(self):
         if self.conexion and self.conexion.is_connected():

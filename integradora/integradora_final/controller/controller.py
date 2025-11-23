@@ -39,9 +39,18 @@ class RentasController:
     # --------------------------
     # Actualizar vista (dashboard)
     # --------------------------
+# En controller/controller.py - modificar el método actualizar_vista
     def actualizar_vista(self):
         if not self.rentas_view:
             return
+        
+        # Verificar si la vista principal todavía existe
+        try:
+            # Test simple para verificar si el widget raíz todavía existe
+            self.root.winfo_exists()
+        except Exception:
+            return
+        
         try:
             eventos = self.model.obtener_eventos()
             reservaciones = self.model.obtener_reservaciones()
@@ -49,32 +58,36 @@ class RentasController:
             total_clientes = self.model.obtener_total_clientes()
             usuarios_conectados = self.model.obtener_usuarios_conectados()
 
-            # Llamadas seguras a la vista
-            if hasattr(self.rentas_view, 'actualizar_eventos'):
-                # convertir eventos a strings cortos para mostrar en la tarjeta si la vista los espera así
+            # Verificar que los métodos de la vista todavía existen antes de llamarlos
+            if (hasattr(self.rentas_view, 'actualizar_eventos') and 
+                hasattr(self.rentas_view, 'card_eventos_desc') and 
+                self.rentas_view.card_eventos_desc.winfo_exists()):
+                
                 eventos_str = [f"{e['titulo']} - {e['fecha_evento']}" for e in eventos]
-
                 self.rentas_view.actualizar_eventos(eventos_str)
 
-            if hasattr(self.rentas_view, 'actualizar_reservaciones'):
+            if (hasattr(self.rentas_view, 'actualizar_reservaciones') and 
+                hasattr(self.rentas_view, 'tree') and 
+                self.rentas_view.tree.winfo_exists()):
+                
                 self.rentas_view.actualizar_reservaciones(reservaciones, total_activas)
 
-            if hasattr(self.rentas_view, 'actualizar_clientes'):
+            if (hasattr(self.rentas_view, 'actualizar_clientes') and 
+                hasattr(self.rentas_view, 'lbl_total_clientes') and 
+                self.rentas_view.lbl_total_clientes.winfo_exists()):
+                
                 self.rentas_view.actualizar_clientes(total_clientes)
 
-            if hasattr(self.rentas_view, 'actualizar_usuarios'):
-                self.rentas_view.actualizar_usuarios(usuarios_conectados)
-
-            # Para la lista completa de clientes (gestión)
-            if hasattr(self.rentas_view, 'actualizar_clientes_completos'):
+            # Para la lista completa de clientes
+            if (hasattr(self.rentas_view, 'actualizar_clientes_completos') and 
+                hasattr(self.rentas_view, 'clientes_tree')):
+                
                 clientes = self.model.obtener_clientes_db()
                 self.rentas_view.actualizar_clientes_completos(clientes)
 
         except Exception as e:
             print(f"Error actualizando vista: {e}")
-            if self.rentas_view:
-                self.rentas_view.mostrar_mensaje("Error", f"Error actualizando datos: {str(e)}")
-
+            # No mostrar messagebox aquí para evitar problemas
     # --------------------------
     # Calendario / Eventos
     # --------------------------
@@ -140,26 +153,36 @@ class RentasController:
 
     def agregar_cliente(self, nombre, telefono, correo, direccion=""):
         if not nombre or not nombre.strip():
-            if self.rentas_view:
-                self.rentas_view.mostrar_mensaje("Error", "El nombre del cliente es obligatorio")
+            # Usar messagebox directamente en lugar de través de la vista
+            messagebox.showerror("Error", "El nombre del cliente es obligatorio")
             return False
 
         if self.model.cliente_existe(nombre, telefono, correo):
-            if self.rentas_view:
-                self.rentas_view.mostrar_mensaje("Advertencia", "El cliente ya existe en la base de datos")
+            messagebox.showwarning("Advertencia", "El cliente ya existe en la base de datos")
             return False
 
         cliente_id = self.model.agregar_cliente(nombre, telefono, correo, direccion)
         if cliente_id:
-            self.actualizar_vista()
-            self.actualizar_vista_clientes()
-            if self.rentas_view:
-                self.rentas_view.mostrar_mensaje("Éxito", f"Cliente '{nombre}' agregado correctamente (ID: {cliente_id})")
+            # Usar after para asegurar que la actualización sea segura
+            self.root.after(100, self.actualizar_vista_segura)
+            messagebox.showinfo("Éxito", f"Cliente '{nombre}' agregado correctamente (ID: {cliente_id})")
             return True
         else:
-            if self.rentas_view:
-                self.rentas_view.mostrar_mensaje("Error", "Error al agregar el cliente")
+            messagebox.showerror("Error", "Error al agregar el cliente")
             return False
+
+    def actualizar_vista_segura(self):
+        """Método seguro para actualizar la vista usando after()"""
+        try:
+            if (hasattr(self, 'rentas_view') and self.rentas_view and 
+                hasattr(self.rentas_view, 'app_frame') and 
+                self.rentas_view.app_frame.winfo_exists()):
+                
+                self.actualizar_vista()
+        except Exception as e:
+            print(f"Error en actualización segura: {e}")
+
+
 
     def actualizar_cliente(self, cliente_id, nombre, telefono, correo, direccion=""):
         if not nombre or not nombre.strip():
