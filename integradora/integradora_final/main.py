@@ -1,8 +1,8 @@
-import tkinter as tk
+import customtkinter as ctk
 from controller.controller import RentasController
 
 def main():
-    root = tk.Tk()
+    root = ctk.CTk()  # CAMBIADO: usar CTk en lugar de tk.Tk()
     app = RentasController(root)
     root.mainloop()
 
