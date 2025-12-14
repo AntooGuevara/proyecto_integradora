@@ -955,3 +955,260 @@ class RentasModel:
             return []
         finally:
             cursor.close()
+
+    # -------------------------
+    # CRUD de Usuarios
+    # -------------------------
+    def obtener_usuarios_db(self):
+        """Obtiene todos los usuarios activos."""
+        cursor = self.obtener_cursor()
+        if not cursor:
+            return []
+        try:
+            query = """
+                SELECT id, usuario, email, nombre_completo, rol, 
+                    fecha_creacion, ultimo_login, activo
+                FROM usuarios
+                WHERE activo = 1
+                ORDER BY usuario
+            """
+            cursor.execute(query)
+            return cursor.fetchall()
+        except Error as e:
+            print(f"Error obteniendo usuarios: {e}")
+            return []
+        finally:
+            cursor.close()
+
+    def obtener_usuario_por_id(self, usuario_id):
+        """Obtiene un usuario específico por ID."""
+        cursor = self.obtener_cursor()
+        if not cursor:
+            return None
+        try:
+            query = "SELECT * FROM usuarios WHERE id = %s"
+            cursor.execute(query, (usuario_id,))
+            return cursor.fetchone()
+        except Error as e:
+            print(f"Error obteniendo usuario: {e}")
+            return None
+        finally:
+            cursor.close()
+
+    def agregar_usuario(self, usuario, password, email, nombre_completo, rol='empleado'):
+        """Agrega un nuevo usuario."""
+        cursor = self.obtener_cursor()
+        if not cursor:
+            return False
+        try:
+            # Verificar si el usuario ya existe
+            cursor.execute("SELECT id FROM usuarios WHERE usuario = %s", (usuario,))
+            if cursor.fetchone():
+                return False
+            
+            query = """
+                INSERT INTO usuarios (usuario, password, email, nombre_completo, rol, activo, fecha_creacion)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """
+            cursor.execute(query, (usuario, password, email, nombre_completo, rol, 1, datetime.now()))
+            self.conexion.commit()
+            return cursor.lastrowid
+        except Error as e:
+            print(f"Error agregando usuario: {e}")
+            self.conexion.rollback()
+            return False
+        finally:
+            cursor.close()
+
+    def actualizar_usuario(self, usuario_id, datos):
+        """Actualiza los datos de un usuario."""
+        cursor = self.obtener_cursor()
+        if not cursor:
+            return False
+        try:
+            query = """
+                UPDATE usuarios 
+                SET usuario = %s, email = %s, nombre_completo = %s, rol = %s
+                WHERE id = %s
+            """
+            cursor.execute(query, (
+                datos.get('usuario'),
+                datos.get('email'),
+                datos.get('nombre_completo'),
+                datos.get('rol'),
+                usuario_id
+            ))
+            
+            # Actualizar contraseña si se proporcionó
+            if datos.get('password'):
+                query_pass = "UPDATE usuarios SET password = %s WHERE id = %s"
+                cursor.execute(query_pass, (datos.get('password'), usuario_id))
+            
+            self.conexion.commit()
+            return cursor.rowcount > 0
+        except Error as e:
+            print(f"Error actualizando usuario: {e}")
+            self.conexion.rollback()
+            return False
+        finally:
+            cursor.close()
+
+    def eliminar_usuario(self, usuario_id):
+        """Elimina (desactiva) un usuario."""
+        cursor = self.obtener_cursor()
+        if not cursor:
+            return False
+        try:
+            # No permitir eliminar al administrador principal
+            if usuario_id == 1:
+                return False
+                
+            query = "UPDATE usuarios SET activo = 0 WHERE id = %s"
+            cursor.execute(query, (usuario_id,))
+            self.conexion.commit()
+            return cursor.rowcount > 0
+        except Error as e:
+            print(f"Error eliminando usuario: {e}")
+            self.conexion.rollback()
+            return False
+        finally:
+            cursor.close()
+
+    # -------------------------
+    # CRUD Mejorado de Reservaciones
+    # -------------------------
+    def obtener_reservacion_por_id(self, reservacion_id):
+        """Obtiene una reservación específica con todos sus detalles."""
+        cursor = self.obtener_cursor()
+        if not cursor:
+            return None
+        try:
+            query = """
+                SELECT r.*, 
+                    c.nombre as cliente_nombre, c.telefono, c.correo,
+                    u.usuario as usuario_nombre, u.nombre_completo
+                FROM reservaciones r
+                LEFT JOIN clientes c ON r.cliente_id = c.id
+                LEFT JOIN usuarios u ON r.usuario_id = u.id
+                WHERE r.id = %s
+            """
+            cursor.execute(query, (reservacion_id,))
+            reservacion = cursor.fetchone()
+            
+            if reservacion:
+                # Obtener artículos de la reservación
+                query_articulos = """
+                    SELECT dr.*, a.nombre as articulo_nombre, a.precio_renta
+                    FROM detalle_reservacion dr
+                    LEFT JOIN articulos a ON dr.articulo_id = a.id
+                    WHERE dr.reservacion_id = %s
+                """
+                cursor.execute(query_articulos, (reservacion_id,))
+                reservacion['articulos'] = cursor.fetchall()
+            
+            return reservacion
+        except Error as e:
+            print(f"Error obteniendo reservación: {e}")
+            return None
+        finally:
+            cursor.close()
+
+    def actualizar_reservacion(self, reservacion_id, datos):
+        """Actualiza una reservación existente."""
+        cursor = self.obtener_cursor()
+        if not cursor:
+            return False
+        try:
+            query = """
+                UPDATE reservaciones 
+                SET cliente_id = %s, estado = %s, fecha_evento = %s,
+                    fecha_entrega = %s, fecha_devolucion = %s, total = %s,
+                    observaciones = %s
+                WHERE id = %s
+            """
+            cursor.execute(query, (
+                datos.get('cliente_id'),
+                datos.get('estado', 'pendiente'),
+                datos.get('fecha_evento'),
+                datos.get('fecha_entrega'),
+                datos.get('fecha_devolucion'),
+                datos.get('total'),
+                datos.get('observaciones'),
+                reservacion_id
+            ))
+            
+            # Actualizar artículos si se proporcionan
+            articulos = datos.get('articulos', [])
+            if articulos:
+                # Eliminar artículos existentes
+                cursor.execute("DELETE FROM detalle_reservacion WHERE reservacion_id = %s", (reservacion_id,))
+                
+                # Insertar nuevos artículos
+                query_det = """
+                    INSERT INTO detalle_reservacion (reservacion_id, articulo_id, cantidad, precio_unitario, subtotal)
+                    VALUES (%s, %s, %s, %s, %s)
+                """
+                for item in articulos:
+                    subtotal = item.get('cantidad', 1) * item.get('precio_unitario', 0)
+                    cursor.execute(query_det, (
+                        reservacion_id,
+                        item.get('articulo_id'),
+                        item.get('cantidad', 1),
+                        item.get('precio_unitario', 0),
+                        subtotal
+                    ))
+            
+            self.conexion.commit()
+            return True
+        except Error as e:
+            print(f"Error actualizando reservación: {e}")
+            self.conexion.rollback()
+            return False
+        finally:
+            cursor.close()
+
+    def buscar_reservaciones(self, filtros):
+        """Busca reservaciones según filtros."""
+        cursor = self.obtener_cursor()
+        if not cursor:
+            return []
+        try:
+            condiciones = []
+            parametros = []
+            
+            # Construir condiciones dinámicas
+            if filtros.get('cliente_id'):
+                condiciones.append("r.cliente_id = %s")
+                parametros.append(filtros['cliente_id'])
+            
+            if filtros.get('estado'):
+                condiciones.append("r.estado = %s")
+                parametros.append(filtros['estado'])
+            
+            if filtros.get('fecha_inicio'):
+                condiciones.append("r.fecha_evento >= %s")
+                parametros.append(filtros['fecha_inicio'])
+            
+            if filtros.get('fecha_fin'):
+                condiciones.append("r.fecha_evento <= %s")
+                parametros.append(filtros['fecha_fin'])
+            
+            # Construir query
+            query = """
+                SELECT r.*, c.nombre as cliente_nombre
+                FROM reservaciones r
+                LEFT JOIN clientes c ON r.cliente_id = c.id
+            """
+            
+            if condiciones:
+                query += " WHERE " + " AND ".join(condiciones)
+            
+            query += " ORDER BY r.fecha_evento DESC"
+            
+            cursor.execute(query, tuple(parametros))
+            return cursor.fetchall()
+        except Error as e:
+            print(f"Error buscando reservaciones: {e}")
+            return []
+        finally:
+            cursor.close()

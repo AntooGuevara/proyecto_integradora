@@ -193,7 +193,7 @@ class RentasView:
         # Estado
         self.current_view = None
         self._show_dashboard()
-
+#guardar_cliente
     def _load_icon(self, path, size):
         try:
             if os.path.exists(path):
@@ -549,7 +549,7 @@ class RentasView:
                                                 text_color="#7a7a7a",
                                                 font=ctk.CTkFont(size=12))
         self.lbl_sin_datos_ordenes.place(relx=0.5, rely=0.5, anchor="center")
-
+#_mostrar_menu_contextual_clientes
 #####_show_ordenes
     def _build_clientes_view(self):
         main_container = ctk.CTkFrame(master=self.content, fg_color="#f7f7f7")
@@ -561,44 +561,90 @@ class RentasView:
         title = ctk.CTkLabel(master=title_section, text="Gestión de Clientes", font=ctk.CTkFont(size=24, weight="bold"))
         title.pack(anchor="w", side="left")
 
-        crear_cliente_btn = ctk.CTkButton(master=title_section, text="Agregar Cliente", command=self._mostrar_dialogo_nuevo_cliente, width=150, height=40, corner_radius=20, fg_color="#27ae60", text_color="white")
+        crear_cliente_btn = ctk.CTkButton(master=title_section, text="Agregar Cliente", 
+                                        command=self._mostrar_dialogo_nuevo_cliente, 
+                                        width=150, height=40, corner_radius=20, 
+                                        fg_color="#27ae60", text_color="white")
         crear_cliente_btn.pack(anchor="e", side="right", padx=(0, 10))
 
         brand_header = ctk.CTkFrame(master=main_container, fg_color="#6b2fb8", height=60)
         brand_header.pack(fill="x", pady=(0, 20))
 
-        brand_label = ctk.CTkLabel(master=brand_header, text="DIVERSIONESJERRY", font=ctk.CTkFont(size=20, weight="bold"), text_color="white")
+        brand_label = ctk.CTkLabel(master=brand_header, text="DIVERSIONESJERRY", 
+                                font=ctk.CTkFont(size=20, weight="bold"), text_color="white")
         brand_label.pack(pady=18)
 
         table_card = ctk.CTkFrame(master=main_container, fg_color="#ffffff", corner_radius=12)
         table_card.pack(fill="both", expand=True, pady=10)
 
-        table_title = ctk.CTkLabel(master=table_card, text="Tabla de Clientes", font=ctk.CTkFont(size=18, weight="bold"))
+        table_title = ctk.CTkLabel(master=table_card, text="Tabla de Clientes", 
+                                font=ctk.CTkFont(size=18, weight="bold"))
         table_title.pack(anchor="w", padx=20, pady=(20, 10))
 
-        info_label = ctk.CTkLabel(master=table_card, text="Base de datos no disponible (Falta configuración).", text_color="#7a7a7a")
+        # Cambiar este mensaje a uno más útil
+        info_label = ctk.CTkLabel(master=table_card, 
+                                text="Haga clic derecho en un cliente para ver opciones.", 
+                                text_color="#7a7a7a")
         info_label.pack(anchor="w", padx=20, pady=(0, 15))
 
         table_frame = ctk.CTkFrame(master=table_card, fg_color="#ffffff")
         table_frame.pack(fill="both", expand=True, padx=20, pady=10)
 
-        columns = ("NOMBRE", "TELEFONO", "CORREO", "DIRECCIÓN", "ACCIONES")
+        # Configurar estilo del Treeview
+        style = ttk.Style()
+        style.theme_use("clam")
+        style.configure("Treeview", font=("Arial", 11), rowheight=35,
+                    background="#ffffff", fieldbackground="#ffffff", 
+                    foreground="#333333")
+        style.map("Treeview", background=[('selected', '#8f49e6')])
+        style.configure("Treeview.Heading", font=("Arial", 12, "bold"),
+                    background="#6b2fb8", foreground="white")
+
+        columns = ("NOMBRE", "TELEFONO", "CORREO", "DIRECCIÓN", "ID_OCULTO")
         self.clientes_tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=10)
-        column_widths = {"NOMBRE": 200, "TELEFONO": 120, "CORREO": 200, "DIRECCIÓN": 200, "ACCIONES": 150}
-        for col in columns:
-            self.clientes_tree.heading(col, text=col)
-            self.clientes_tree.column(col, width=column_widths[col], anchor="center")
+        
+        # Ocultar la columna ID_OCULTO
+        self.clientes_tree.heading("NOMBRE", text="NOMBRE")
+        self.clientes_tree.heading("TELEFONO", text="TELEFONO")
+        self.clientes_tree.heading("CORREO", text="CORREO")
+        self.clientes_tree.heading("DIRECCIÓN", text="DIRECCIÓN")
+        self.clientes_tree.heading("ID_OCULTO", text="")
+        
+        # Configurar anchos
+        self.clientes_tree.column("NOMBRE", width=200, anchor="w")
+        self.clientes_tree.column("TELEFONO", width=120, anchor="center")
+        self.clientes_tree.column("CORREO", width=200, anchor="w")
+        self.clientes_tree.column("DIRECCIÓN", width=200, anchor="w")
+        self.clientes_tree.column("ID_OCULTO", width=0, stretch=False)  # Ocultar columna
 
         scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.clientes_tree.yview)
         self.clientes_tree.configure(yscrollcommand=scrollbar.set)
         self.clientes_tree.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
-        self.clientes_sin_datos = ctk.CTkLabel(master=table_frame, text="No hay clientes para mostrar.", text_color="#7a7a7a")
+        self.clientes_sin_datos = ctk.CTkLabel(master=table_frame, 
+                                            text="No hay clientes para mostrar.", 
+                                            text_color="#7a7a7a")
         self.clientes_sin_datos.place(relx=0.5, rely=0.5, anchor="center")
 
-        bottom_info = ctk.CTkLabel(master=main_container, text=f"ID de Usuario: {self.controller.get_usuario_actual()}", text_color="#7a7a7a")
+        bottom_info = ctk.CTkLabel(master=main_container, 
+                                text=f"ID de Usuario: {self.controller.get_usuario_actual()}", 
+                                text_color="#7a7a7a")
         bottom_info.pack(anchor="w", pady=10)
+
+        # Crear menú contextual
+        self.menu_contextual_clientes = tk.Menu(self.root, tearoff=0)
+        self.menu_contextual_clientes.add_command(label="📝 Editar Cliente", 
+                                                command=self._editar_cliente_desde_menu)
+        self.menu_contextual_clientes.add_command(label="🗑️ Eliminar Cliente", 
+                                                command=self._eliminar_cliente_desde_menu)
+        self.menu_contextual_clientes.add_separator()
+        self.menu_contextual_clientes.add_command(label="📋 Ver Detalles", 
+                                                command=self._ver_detalles_cliente)
+
+        # Vincular eventos
+        self.clientes_tree.bind("<Button-3>", self._mostrar_menu_contextual_clientes)  # Clic derecho
+        self.clientes_tree.bind("<Double-1>", self._editar_cliente_doble_clic)  # Doble clic
 
         # Cargar clientes
         self.controller.actualizar_vista_clientes()
@@ -628,28 +674,40 @@ class RentasView:
         btn_frame = ctk.CTkFrame(master=dialog, fg_color="transparent")
         btn_frame.pack(pady=20)
 
-        def guardar_cliente():
-            nombre = self.cliente_entries['nombre'].get().strip()
-            telefono = self.cliente_entries['telefono'].get().strip()
-            correo = self.cliente_entries['correo'].get().strip()
-            direccion = self.cliente_entries['direccion'].get().strip()
-            if not nombre:
-                messagebox.showerror("Error", "El nombre es obligatorio")
-                return
-            
-            # Cerrar el diálogo primero
-            dialog.destroy()
-            
-            # Luego procesar en el controller
-            self.controller.agregar_cliente(nombre, telefono, correo, direccion)
+    def guardar_cliente(self, dialog: ctk.CTkToplevel):
+        """Recupera los datos del diálogo de Registro de Cliente."""
+        try:
+            # CORRECCIÓN: Solo usar las claves que realmente existen
+            nombre = self.cliente_entries["nombre"].get().strip()
+            telefono = self.cliente_entries["telefono"].get().strip()
+            correo = self.cliente_entries["correo"].get().strip()
+            direccion = self.cliente_entries["direccion"].get().strip()
 
-        def cancelar():
-            dialog.destroy()
+            # La clave "apellidos" no existe en el diccionario actual
+            # Si necesitas apellidos, debes agregarlo a los campos
+            #_build_clientes_view
+        except KeyError as e:
+            messagebox.showerror("Error de Formulario", f"Falta el campo: {e}")
+            return
+        
+        if not nombre:
+            messagebox.showerror("Validación", "El nombre del cliente es obligatorio.")
+            return
 
-        btn_guardar = ctk.CTkButton(master=btn_frame, text="Guardar Cliente", command=guardar_cliente, width=120, height=40, fg_color="#27ae60")
-        btn_guardar.pack(side="left", padx=10)
-        btn_cancelar = ctk.CTkButton(master=btn_frame, text="Cancelar", command=cancelar, width=120, height=40, fg_color="#95a5a6")
-        btn_cancelar.pack(side="left", padx=10)
+        id_cliente = self.controller.agregar_cliente(
+            nombre=nombre,
+            telefono=telefono,
+            correo=correo,
+            direccion=direccion
+        )
+        
+        if id_cliente:
+            messagebox.showinfo("Éxito", f"Cliente '{nombre}' guardado con ID: {id_cliente}")
+            dialog.destroy()
+            if self.current_view == "clientes":
+                self.controller.actualizar_vista_clientes()
+        else:
+            messagebox.showerror("Error de BD", "No se pudo guardar el cliente.")
 
     # ---------------- Métodos públicos que usa el controller -----------------
     def actualizar_eventos(self, eventos):
@@ -785,7 +843,7 @@ class RentasView:
 ####
 
     def actualizar_clientes_completos(self, clientes):
-        """Actualización segura de la tabla de clientes"""
+        """Actualización segura de la tabla de clientes con ID oculto."""
         try:
             if not hasattr(self, 'clientes_tree') or not self.clientes_tree.winfo_exists():
                 return
@@ -799,12 +857,13 @@ class RentasView:
                     self.clientes_sin_datos.place_forget()
                     
                 for cliente in clientes:
+                    # Insertar con ID en columna oculta
                     self.clientes_tree.insert("", "end", values=(
                         cliente.get('nombre', ''),
                         cliente.get('telefono', ''),
                         cliente.get('correo', ''),
                         cliente.get('direccion', ''),
-                        "Editar | Eliminar"
+                        cliente.get('id', '')  # ID en columna oculta
                     ))
             else:
                 if hasattr(self, 'clientes_sin_datos') and self.clientes_sin_datos.winfo_exists():
@@ -1539,3 +1598,783 @@ class RentasView:
     def mostrar(self):
         if hasattr(self, 'app_frame'):
             self.app_frame.pack(fill="both", expand=True)
+#_mostrar_dialogo_editar_reservacion
+
+
+    # -------------------------
+    # VISTA DE USUARIOS
+    # -------------------------
+    def _show_usuarios(self):
+        """Muestra la vista de gestión de usuarios."""
+        self._clear_content()
+        self.current_view = "usuarios"
+        self._update_button_colors()
+        self._build_usuarios_view()
+
+    def _build_usuarios_view(self):
+        """Construye la vista de usuarios."""
+        main_container = ctk.CTkFrame(master=self.content, fg_color="#f7f7f7")
+        main_container.pack(fill="both", expand=True)
+
+        # Cabecera
+        header_frame = ctk.CTkFrame(master=main_container, fg_color="#f7f7f7")
+        header_frame.pack(fill="x", pady=(0, 20))
+
+        title = ctk.CTkLabel(master=header_frame, text="Gestión de Usuarios", 
+                            font=ctk.CTkFont(size=24, weight="bold"))
+        title.pack(anchor="w", padx=20, pady=10, side="left")
+
+        # Botones de acción
+        btn_frame = ctk.CTkFrame(master=header_frame, fg_color="#f7f7f7")
+        btn_frame.pack(anchor="e", side="right", padx=20, pady=10)
+
+        actualizar_btn = ctk.CTkButton(
+            master=btn_frame,
+            text="↻ Actualizar",
+            command=self._actualizar_usuarios,
+            width=120,
+            height=35,
+            fg_color="#3498db"
+        )
+        actualizar_btn.pack(side="left", padx=(0, 10))
+
+        nuevo_usuario_btn = ctk.CTkButton(
+            master=btn_frame,
+            text="+ Nuevo Usuario",
+            command=self._mostrar_dialogo_nuevo_usuario,
+            width=150,
+            height=35,
+            fg_color="#27ae60"
+        )
+        nuevo_usuario_btn.pack(side="left")
+
+        # Tabla de usuarios
+        table_card = ctk.CTkFrame(master=main_container, fg_color="#ffffff", corner_radius=12)
+        table_card.pack(fill="both", expand=True, padx=20, pady=10)
+
+        # Configurar estilo de la tabla
+        style = ttk.Style()
+        style.theme_use("clam")
+        style.configure("Treeview", font=("Arial", 11), rowheight=35)
+        style.map("Treeview", background=[('selected', '#8f49e6')])
+        style.configure("Treeview.Heading", font=("Arial", 12, "bold"), 
+                    background="#6b2fb8", foreground="white")
+
+        # Frame para tabla
+        table_frame = ctk.CTkFrame(master=table_card, fg_color="#ffffff")
+        table_frame.pack(fill="both", expand=True, padx=20, pady=10)
+
+        # Columnas
+        columns = ('ID', 'Usuario', 'Nombre', 'Email', 'Rol', 'Último Login', 'Acciones')
+        self.usuarios_tree = ttk.Treeview(
+            master=table_frame,
+            columns=columns,
+            show='headings',
+            height=12
+        )
+
+        # Configurar columnas
+        for col in columns:
+            self.usuarios_tree.heading(col, text=col)
+            self.usuarios_tree.column(col, width=120, anchor="center" 
+                                    if col in ['ID', 'Rol', 'Acciones'] else "w")
+
+        # Scrollbar
+        scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.usuarios_tree.yview)
+        self.usuarios_tree.configure(yscrollcommand=scrollbar.set)
+
+        self.usuarios_tree.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+        # Etiqueta de "No hay datos"
+        self.lbl_sin_datos_usuarios = ctk.CTkLabel(master=table_frame,
+                                                text="Cargando usuarios...",
+                                                text_color="#7a7a7a")
+        self.lbl_sin_datos_usuarios.place(relx=0.5, rely=0.5, anchor="center")
+
+        # Configurar eventos
+        self._configurar_treeview_usuarios()
+
+        # Cargar datos iniciales
+        self._actualizar_usuarios()
+
+    def _configurar_treeview_usuarios(self):
+        """Configura eventos del Treeview de usuarios."""
+        try:
+            # Menú contextual
+            self.menu_contextual_usuarios = tk.Menu(self.root, tearoff=0)
+            self.menu_contextual_usuarios.add_command(label="📝 Editar Usuario", 
+                                                    command=self._editar_usuario)
+            self.menu_contextual_usuarios.add_command(label="🗑️ Eliminar Usuario", 
+                                                    command=self._eliminar_usuario)
+            
+            # Vincular eventos
+            self.usuarios_tree.bind('<Button-3>', self._mostrar_menu_contextual_usuarios)
+            self.usuarios_tree.bind('<Double-1>', lambda e: self._editar_usuario())
+            
+        except Exception as e:
+            print(f"Error configurando treeview de usuarios: {e}")
+
+    def _mostrar_menu_contextual_usuarios(self, event):
+        """Muestra el menú contextual para usuarios."""
+        try:
+            item = self.usuarios_tree.identify_row(event.y)
+            if item:
+                self.usuarios_tree.selection_set(item)
+                self.menu_contextual_usuarios.post(event.x_root, event.y_root)
+        except Exception as e:
+            print(f"Error mostrando menú contextual de usuarios: {e}")
+
+    def _actualizar_usuarios(self):
+        """Actualiza la lista de usuarios."""
+        try:
+            # Obtener usuarios del controlador
+            usuarios = self.controller.obtener_usuarios()
+            
+            # Limpiar tabla
+            for item in self.usuarios_tree.get_children():
+                self.usuarios_tree.delete(item)
+            
+            if usuarios:
+                self.lbl_sin_datos_usuarios.place_forget()
+                
+                for usuario in usuarios:
+                    ultimo_login = usuario.get('ultimo_login')
+                    if ultimo_login:
+                        ultimo_login_str = ultimo_login.strftime("%Y-%m-%d %H:%M")
+                    else:
+                        ultimo_login_str = "Nunca"
+                    
+                    self.usuarios_tree.insert("", "end", values=(
+                        usuario.get('id'),
+                        usuario.get('usuario'),
+                        usuario.get('nombre_completo', ''),
+                        usuario.get('email', ''),
+                        usuario.get('rol', 'empleado').title(),
+                        ultimo_login_str,
+                        "Editar | Eliminar"
+                    ))
+            else:
+                self.lbl_sin_datos_usuarios.configure(text="No hay usuarios registrados")
+                self.lbl_sin_datos_usuarios.place(relx=0.5, rely=0.5, anchor="center")
+                
+        except Exception as e:
+            print(f"Error actualizando usuarios: {e}")
+            messagebox.showerror("Error", f"Error al cargar usuarios: {str(e)}")
+
+    def _mostrar_dialogo_nuevo_usuario(self):
+        """Muestra diálogo para crear nuevo usuario."""
+        dialog = ctk.CTkToplevel(self.root)
+        dialog.title("Nuevo Usuario")
+        dialog.geometry("500x450")
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        # Título
+        titulo = ctk.CTkLabel(master=dialog, text="Crear Nuevo Usuario",
+                            font=ctk.CTkFont(size=18, weight="bold"))
+        titulo.pack(pady=15)
+
+        # Frame del formulario
+        form_frame = ctk.CTkFrame(master=dialog)
+        form_frame.pack(pady=10, padx=20, fill="both", expand=True)
+
+        # Campos
+        campos = []
+        row = 0
+
+        # Usuario
+        lbl_usuario = ctk.CTkLabel(master=form_frame, text="Usuario *:")
+        lbl_usuario.grid(row=row, column=0, sticky="w", padx=10, pady=(10, 5))
+        entry_usuario = ctk.CTkEntry(master=form_frame, width=250)
+        entry_usuario.grid(row=row, column=1, padx=10, pady=(10, 5))
+        campos.append(('usuario', entry_usuario))
+        row += 1
+
+        # Contraseña
+        lbl_password = ctk.CTkLabel(master=form_frame, text="Contraseña *:")
+        lbl_password.grid(row=row, column=0, sticky="w", padx=10, pady=5)
+        entry_password = ctk.CTkEntry(master=form_frame, width=250, show="•")
+        entry_password.grid(row=row, column=1, padx=10, pady=5)
+        campos.append(('password', entry_password))
+        row += 1
+
+        # Confirmar contraseña
+        lbl_confirm_password = ctk.CTkLabel(master=form_frame, text="Confirmar Contraseña *:")
+        lbl_confirm_password.grid(row=row, column=0, sticky="w", padx=10, pady=5)
+        entry_confirm_password = ctk.CTkEntry(master=form_frame, width=250, show="•")
+        entry_confirm_password.grid(row=row, column=1, padx=10, pady=5)
+        campos.append(('confirm_password', entry_confirm_password))
+        row += 1
+
+        # Nombre completo
+        lbl_nombre = ctk.CTkLabel(master=form_frame, text="Nombre Completo:")
+        lbl_nombre.grid(row=row, column=0, sticky="w", padx=10, pady=5)
+        entry_nombre = ctk.CTkEntry(master=form_frame, width=250)
+        entry_nombre.grid(row=row, column=1, padx=10, pady=5)
+        campos.append(('nombre_completo', entry_nombre))
+        row += 1
+
+        # Email
+        lbl_email = ctk.CTkLabel(master=form_frame, text="Email:")
+        lbl_email.grid(row=row, column=0, sticky="w", padx=10, pady=5)
+        entry_email = ctk.CTkEntry(master=form_frame, width=250)
+        entry_email.grid(row=row, column=1, padx=10, pady=5)
+        campos.append(('email', entry_email))
+        row += 1
+
+        # Rol
+        lbl_rol = ctk.CTkLabel(master=form_frame, text="Rol:")
+        lbl_rol.grid(row=row, column=0, sticky="w", padx=10, pady=5)
+        combo_rol = ctk.CTkComboBox(
+            master=form_frame,
+            values=["admin", "empleado"],
+            width=250,
+            state="readonly"
+        )
+        combo_rol.set("empleado")
+        combo_rol.grid(row=row, column=1, padx=10, pady=5)
+        campos.append(('rol', combo_rol))
+        row += 1
+
+        # Botones
+        btn_frame = ctk.CTkFrame(master=dialog, fg_color="transparent")
+        btn_frame.pack(pady=15)
+
+        def guardar_usuario():
+            # Obtener valores
+            datos = {}
+            for key, widget in campos:
+                if isinstance(widget, ctk.CTkEntry):
+                    datos[key] = widget.get().strip()
+                elif isinstance(widget, ctk.CTkComboBox):
+                    datos[key] = widget.get()
+
+            # Validaciones
+            if not datos.get('usuario'):
+                messagebox.showerror("Error", "El usuario es obligatorio")
+                return
+
+            if not datos.get('password'):
+                messagebox.showerror("Error", "La contraseña es obligatoria")
+                return
+
+            if datos['password'] != datos.get('confirm_password', ''):
+                messagebox.showerror("Error", "Las contraseñas no coinciden")
+                return
+
+            # Remover confirm_password
+            del datos['confirm_password']
+
+            # Guardar
+            if self.controller.agregar_usuario(datos):
+                dialog.destroy()
+
+        def cancelar():
+            dialog.destroy()
+
+        btn_guardar = ctk.CTkButton(master=btn_frame, text="Guardar",
+                                command=guardar_usuario,
+                                width=120, height=35,
+                                fg_color="#27ae60")
+        btn_guardar.pack(side="left", padx=10)
+
+        btn_cancelar = ctk.CTkButton(master=btn_frame, text="Cancelar",
+                                    command=cancelar,
+                                    width=120, height=35,
+                                    fg_color="#95a5a6")
+        btn_cancelar.pack(side="left", padx=10)
+
+    def _editar_usuario(self):
+        """Edita el usuario seleccionado."""
+        seleccionado = self.usuarios_tree.selection()
+        if not seleccionado:
+            messagebox.showwarning("Advertencia", "Por favor, seleccione un usuario para editar")
+            return
+
+        item = seleccionado[0]
+        valores = self.usuarios_tree.item(item, 'values')
+        usuario_id = valores[0]
+
+        # Obtener datos del usuario
+        usuario = self.controller.obtener_usuario(usuario_id)
+        if not usuario:
+            messagebox.showerror("Error", "No se pudo obtener los datos del usuario")
+            return
+
+        # Mostrar diálogo de edición (similar al de nuevo usuario)
+        self._mostrar_dialogo_editar_usuario(usuario)
+
+    def _mostrar_dialogo_editar_usuario(self, usuario):
+        """Muestra diálogo para editar usuario."""
+        dialog = ctk.CTkToplevel(self.root)
+        dialog.title(f"Editar Usuario: {usuario.get('usuario')}")
+        dialog.geometry("500x500")
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        # Título
+        titulo = ctk.CTkLabel(master=dialog, text=f"Editar Usuario: {usuario.get('usuario')}",
+                            font=ctk.CTkFont(size=18, weight="bold"))
+        titulo.pack(pady=15)
+
+        # Frame del formulario
+        form_frame = ctk.CTkFrame(master=dialog)
+        form_frame.pack(pady=10, padx=20, fill="both", expand=True)
+
+        # Campos
+        row = 0
+
+        # Usuario
+        lbl_usuario = ctk.CTkLabel(master=form_frame, text="Usuario *:")
+        lbl_usuario.grid(row=row, column=0, sticky="w", padx=10, pady=(10, 5))
+        entry_usuario = ctk.CTkEntry(master=form_frame, width=250)
+        entry_usuario.insert(0, usuario.get('usuario', ''))
+        entry_usuario.grid(row=row, column=1, padx=10, pady=(10, 5))
+        row += 1
+
+        # Nueva contraseña (opcional)
+        lbl_password = ctk.CTkLabel(master=form_frame, text="Nueva Contraseña:")
+        lbl_password.grid(row=row, column=0, sticky="w", padx=10, pady=5)
+        entry_password = ctk.CTkEntry(master=form_frame, width=250, show="•", 
+                                    placeholder_text="Dejar vacío para no cambiar")
+        entry_password.grid(row=row, column=1, padx=10, pady=5)
+        row += 1
+
+        # Nombre completo
+        lbl_nombre = ctk.CTkLabel(master=form_frame, text="Nombre Completo:")
+        lbl_nombre.grid(row=row, column=0, sticky="w", padx=10, pady=5)
+        entry_nombre = ctk.CTkEntry(master=form_frame, width=250)
+        entry_nombre.insert(0, usuario.get('nombre_completo', ''))
+        entry_nombre.grid(row=row, column=1, padx=10, pady=5)
+        row += 1
+
+        # Email
+        lbl_email = ctk.CTkLabel(master=form_frame, text="Email:")
+        lbl_email.grid(row=row, column=0, sticky="w", padx=10, pady=5)
+        entry_email = ctk.CTkEntry(master=form_frame, width=250)
+        entry_email.insert(0, usuario.get('email', ''))
+        entry_email.grid(row=row, column=1, padx=10, pady=5)
+        row += 1
+
+        # Rol
+        lbl_rol = ctk.CTkLabel(master=form_frame, text="Rol:")
+        lbl_rol.grid(row=row, column=0, sticky="w", padx=10, pady=5)
+        combo_rol = ctk.CTkComboBox(
+            master=form_frame,
+            values=["admin", "empleado"],
+            width=250,
+            state="readonly"
+        )
+        combo_rol.set(usuario.get('rol', 'empleado'))
+        combo_rol.grid(row=row, column=1, padx=10, pady=5)
+        row += 1
+
+        # Estado
+        lbl_activo = ctk.CTkLabel(master=form_frame, text="Activo:")
+        lbl_activo.grid(row=row, column=0, sticky="w", padx=10, pady=5)
+        combo_activo = ctk.CTkComboBox(
+            master=form_frame,
+            values=["Sí", "No"],
+            width=250,
+            state="readonly"
+        )
+        combo_activo.set("Sí" if usuario.get('activo', 1) else "No")
+        combo_activo.grid(row=row, column=1, padx=10, pady=5)
+        row += 1
+
+        # Botones
+        btn_frame = ctk.CTkFrame(master=dialog, fg_color="transparent")
+        btn_frame.pack(pady=15)
+
+        def guardar_cambios():
+            datos = {
+                'usuario': entry_usuario.get().strip(),
+                'password': entry_password.get().strip() if entry_password.get().strip() else None,
+                'nombre_completo': entry_nombre.get().strip(),
+                'email': entry_email.get().strip(),
+                'rol': combo_rol.get(),
+                'activo': 1 if combo_activo.get() == "Sí" else 0
+            }
+            
+            if not datos['usuario']:
+                messagebox.showerror("Error", "El usuario es obligatorio")
+                return
+
+            if self.controller.actualizar_usuario(usuario['id'], datos):
+                dialog.destroy()
+                # Actualizar vista
+                self._actualizar_usuarios()
+
+        def cancelar():
+            dialog.destroy()
+
+        btn_guardar = ctk.CTkButton(master=btn_frame, text="Guardar",
+                                command=guardar_cambios,
+                                width=120, height=35,
+                                fg_color="#27ae60")
+        btn_guardar.pack(side="left", padx=10)
+
+        btn_cancelar = ctk.CTkButton(master=btn_frame, text="Cancelar",
+                                    command=cancelar,
+                                    width=120, height=35,
+                                    fg_color="#95a5a6")
+        btn_cancelar.pack(side="left", padx=10)
+
+    def _eliminar_usuario(self):
+        """Elimina el usuario seleccionado."""
+        seleccionado = self.usuarios_tree.selection()
+        if not seleccionado:
+            messagebox.showwarning("Advertencia", "Por favor, seleccione un usuario para eliminar")
+            return
+
+        item = seleccionado[0]
+        valores = self.usuarios_tree.item(item, 'values')
+        usuario_id = valores[0]
+        nombre_usuario = valores[1]
+
+        # Confirmar eliminación
+        confirmacion = messagebox.askyesno(
+            "Confirmar Eliminación",
+            f"¿Está seguro de que desea eliminar al usuario '{nombre_usuario}'?\n\n"
+            f"Esta acción no se puede deshacer. El usuario será desactivado."
+        )
+
+        if confirmacion:
+            if self.controller.eliminar_usuario(usuario_id):
+                # Actualizar vista
+                self._actualizar_usuarios()
+            else:
+                messagebox.showerror("Error", "No se pudo eliminar el usuario")
+
+    # -------------------------
+    # DIÁLOGOS MEJORADOS PARA RESERVACIONES
+    # -------------------------
+    def _mostrar_dialogo_editar_reservacion(self, reservacion):
+        """Muestra diálogo para editar una reservación existente."""
+        dialog = ctk.CTkToplevel(self.root)
+        dialog.title(f"Editar Reservación #{reservacion.get('id')}")
+        dialog.geometry("600x600")
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        # Título
+        titulo = ctk.CTkLabel(master=dialog, 
+                            text=f"✏️ Editar Reservación #{reservacion.get('id')}",
+                            font=ctk.CTkFont(size=18, weight="bold"))
+        titulo.pack(pady=15)
+
+        # Frame para contenido con scrollbar
+        main_frame = ctk.CTkFrame(master=dialog)
+        main_frame.pack(fill="both", expand=True, padx=20, pady=10)
+
+        # Frame interno para el formulario
+        form_frame = ctk.CTkFrame(master=main_frame)
+        form_frame.pack(fill="both", expand=True)
+
+        # Obtener listas para combobox
+        cliente_map = {item['nombre']: item['id'] for item in self.controller.obtener_lista_clientes()}
+        articulo_map = {item['nombre']: item['id'] for item in self.controller.obtener_lista_articulos()}
+
+        lista_clientes = list(cliente_map.keys())
+        
+        # Variables para almacenar widgets
+        combo_cliente = None
+        combo_estado = None
+        date_widgets = {}
+        entry_total = None
+        text_obs = None
+
+        # Campos del formulario
+        row = 0
+
+        # Cliente
+        lbl_cliente = ctk.CTkLabel(master=form_frame, text="Cliente *:")
+        lbl_cliente.grid(row=row, column=0, sticky="w", padx=10, pady=10)
+        
+        cliente_actual = reservacion.get('cliente_nombre', '')
+        combo_cliente = ctk.CTkComboBox(
+            master=form_frame,
+            values=lista_clientes,
+            width=300,
+            state="readonly"
+        )
+        combo_cliente.set(cliente_actual if cliente_actual in lista_clientes else "")
+        combo_cliente.grid(row=row, column=1, padx=10, pady=10)
+        row += 1
+
+        # Estado
+        lbl_estado = ctk.CTkLabel(master=form_frame, text="Estado:")
+        lbl_estado.grid(row=row, column=0, sticky="w", padx=10, pady=10)
+        
+        estados = ['pendiente', 'confirmada', 'en_proceso', 'completada', 'cancelada']
+        combo_estado = ctk.CTkComboBox(
+            master=form_frame,
+            values=estados,
+            width=300,
+            state="readonly"
+        )
+        combo_estado.set(reservacion.get('estado', 'pendiente'))
+        combo_estado.grid(row=row, column=1, padx=10, pady=10)
+        row += 1
+
+        # Fechas
+        fecha_campos = ['fecha_evento', 'fecha_entrega', 'fecha_devolucion']
+        fecha_labels = ['Fecha Evento', 'Fecha Entrega', 'Fecha Devolución']
+        
+        for i, (campo, label) in enumerate(zip(fecha_campos, fecha_labels)):
+            lbl = ctk.CTkLabel(master=form_frame, text=f"{label}:")
+            lbl.grid(row=row, column=0, sticky="w", padx=10, pady=10)
+            
+            # Obtener fecha de la reservación
+            fecha_valor = reservacion.get(campo)
+            if fecha_valor:
+                if hasattr(fecha_valor, 'strftime'):
+                    fecha_default = fecha_valor
+                else:
+                    try:
+                        fecha_default = datetime.strptime(str(fecha_valor), "%Y-%m-%d")
+                    except:
+                        fecha_default = datetime.now()
+            else:
+                fecha_default = datetime.now()
+            
+            date_widget = DateEntry(
+                master=form_frame,
+                width=20,
+                date_pattern='dd/MM/yyyy'
+            )
+            date_widget.set_date(fecha_default)
+            date_widget.grid(row=row, column=1, padx=10, pady=10)
+            
+            date_widgets[campo] = date_widget
+            row += 1
+
+        # Total
+        lbl_total = ctk.CTkLabel(master=form_frame, text="Total:")
+        lbl_total.grid(row=row, column=0, sticky="w", padx=10, pady=10)
+        
+        entry_total = ctk.CTkEntry(master=form_frame, width=300)
+        entry_total.insert(0, str(reservacion.get('total', 0)))
+        entry_total.grid(row=row, column=1, padx=10, pady=10)
+        row += 1
+
+        # Observaciones
+        lbl_obs = ctk.CTkLabel(master=form_frame, text="Observaciones:")
+        lbl_obs.grid(row=row, column=0, sticky="w", padx=10, pady=10)
+        
+        text_obs = ctk.CTkTextbox(master=form_frame, width=300, height=80)
+        text_obs.insert("1.0", reservacion.get('observaciones', ''))
+        text_obs.grid(row=row, column=1, padx=10, pady=10)
+        row += 1
+
+        # Frame para botones
+        button_frame = ctk.CTkFrame(master=dialog, fg_color="transparent")
+        button_frame.pack(pady=15, padx=20, fill="x")
+
+        def guardar_cambios():
+            """Guarda los cambios realizados en la reservación."""
+            try:
+                datos = {
+                    'cliente_id': cliente_map.get(combo_cliente.get()),
+                    'estado': combo_estado.get(),
+                    'fecha_evento': date_widgets['fecha_evento'].get_date().strftime("%Y-%m-%d"),
+                    'fecha_entrega': date_widgets['fecha_entrega'].get_date().strftime("%Y-%m-%d"),
+                    'fecha_devolucion': date_widgets['fecha_devolucion'].get_date().strftime("%Y-%m-%d"),
+                    'total': float(entry_total.get() or 0),
+                    'observaciones': text_obs.get("1.0", "end-1c").strip(),
+                    'articulos': []
+                }
+                
+                if not datos['cliente_id']:
+                    messagebox.showerror("Error", "Debe seleccionar un cliente válido")
+                    return
+                
+                if self.controller.actualizar_reservacion_completa(reservacion['id'], datos):
+                    messagebox.showinfo("Éxito", "Reservación actualizada correctamente")
+                    dialog.destroy()
+                    self.controller.actualizar_vista_ordenes()
+                else:
+                    messagebox.showerror("Error", "No se pudo actualizar la reservación")
+                    
+            except Exception as e:
+                messagebox.showerror("Error", f"Error al guardar cambios: {str(e)}")
+
+        def cancelar():
+            dialog.destroy()
+
+        # Botones
+        btn_guardar = ctk.CTkButton(
+            master=button_frame,
+            text="Guardar Cambios",
+            command=guardar_cambios,
+            width=140,
+            height=35,
+            fg_color="#27ae60"
+        )
+        btn_guardar.pack(side="left", padx=10)
+
+        btn_cancelar = ctk.CTkButton(
+            master=button_frame,
+            text="Cancelar",
+            command=cancelar,
+            width=120,
+            height=35,
+            fg_color="#95a5a6"
+        )
+        btn_cancelar.pack(side="left", padx=10)
+#actualizar_clientes_completos
+    def _mostrar_menu_contextual_clientes(self, event):
+        """Muestra el menú contextual al hacer clic derecho en un cliente."""
+        try:
+            item = self.clientes_tree.identify_row(event.y)
+            if item:
+                self.clientes_tree.selection_set(item)
+                self.menu_contextual_clientes.post(event.x_root, event.y_root)
+        except Exception as e:
+            print(f"Error mostrando menú contextual: {e}")
+
+    def _editar_cliente_doble_clic(self, event):
+        """Abre edición al hacer doble clic en un cliente."""
+        self._editar_cliente_desde_menu()
+
+    def _editar_cliente_desde_menu(self):
+        """Edita el cliente seleccionado."""
+        seleccionado = self.clientes_tree.selection()
+        if not seleccionado:
+            messagebox.showwarning("Advertencia", "Por favor, seleccione un cliente para editar.")
+            return
+        
+        item = seleccionado[0]
+        valores = self.clientes_tree.item(item, 'values')
+        
+        if len(valores) >= 5:  # Asegurarse de que tenemos el ID
+            cliente_id = valores[4]  # ID está en la columna oculta
+            cliente_nombre = valores[0]
+            self._mostrar_dialogo_editar_cliente(cliente_id, cliente_nombre, valores)
+
+    def _eliminar_cliente_desde_menu(self):
+        """Elimina el cliente seleccionado."""
+        seleccionado = self.clientes_tree.selection()
+        if not seleccionado:
+            messagebox.showwarning("Advertencia", "Por favor, seleccione un cliente para eliminar.")
+            return
+        
+        item = seleccionado[0]
+        valores = self.clientes_tree.item(item, 'values')
+        
+        if len(valores) >= 5:
+            cliente_id = valores[4]
+            cliente_nombre = valores[0]
+            
+            confirmacion = messagebox.askyesno(
+                "Confirmar Eliminación",
+                f"¿Está seguro de que desea eliminar al cliente '{cliente_nombre}'?\n\n"
+                f"Esta acción marcará al cliente como inactivo en el sistema."
+            )
+            
+            if confirmacion:
+                if self.controller.eliminar_cliente(cliente_id):
+                    messagebox.showinfo("Éxito", f"Cliente '{cliente_nombre}' eliminado correctamente.")
+                    self.controller.actualizar_vista_clientes()
+                else:
+                    messagebox.showerror("Error", "No se pudo eliminar el cliente.")
+
+    def _ver_detalles_cliente(self):
+        """Muestra detalles del cliente seleccionado."""
+        seleccionado = self.clientes_tree.selection()
+        if not seleccionado:
+            messagebox.showwarning("Advertencia", "Por favor, seleccione un cliente para ver detalles.")
+            return
+        
+        item = seleccionado[0]
+        valores = self.clientes_tree.item(item, 'values')
+        
+        if len(valores) >= 5:
+            cliente_id = valores[4]
+            cliente_nombre = valores[0]
+            
+            # Obtener detalles completos del modelo
+            cliente = self.controller.model.buscar_cliente_por_id(cliente_id)
+            
+            if cliente:
+                detalles = f"""
+                📋 Detalles del Cliente
+                
+                👤 Nombre: {cliente.get('nombre', 'N/A')}
+                📞 Teléfono: {cliente.get('telefono', 'N/A')}
+                📧 Correo: {cliente.get('correo', 'N/A')}
+                📍 Dirección: {cliente.get('direccion', 'N/A')}
+                📅 Fecha Registro: {cliente.get('fecha_registro', 'N/A')}
+                """
+                
+                messagebox.showinfo(f"Detalles - {cliente_nombre}", detalles)
+            else:
+                messagebox.showerror("Error", "No se encontraron detalles del cliente.")
+
+    def _mostrar_dialogo_editar_cliente(self, cliente_id, cliente_nombre, valores_actuales):
+        """Muestra diálogo para editar cliente existente."""
+        dialog = ctk.CTkToplevel(self.root)
+        dialog.title(f"Editar Cliente: {cliente_nombre}")
+        dialog.geometry("500x400")
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        titulo = ctk.CTkLabel(master=dialog, text=f"Editar Cliente: {cliente_nombre}",
+                            font=ctk.CTkFont(size=18, weight="bold"))
+        titulo.pack(pady=15)
+
+        form_frame = ctk.CTkFrame(master=dialog)
+        form_frame.pack(pady=10, padx=20, fill="both", expand=True)
+
+        # Campos de edición (mismos que en agregar cliente)
+        campos = [
+            ("Nombre", "nombre", valores_actuales[0] if len(valores_actuales) > 0 else ""),
+            ("Teléfono", "telefono", valores_actuales[1] if len(valores_actuales) > 1 else ""),
+            ("Correo", "correo", valores_actuales[2] if len(valores_actuales) > 2 else ""),
+            ("Dirección", "direccion", valores_actuales[3] if len(valores_actuales) > 3 else "")
+        ]
+        
+        entries = {}
+        for i, (label, key, valor_default) in enumerate(campos):
+            lbl = ctk.CTkLabel(master=form_frame, text=f"{label}:", font=ctk.CTkFont(size=12, weight="bold"))
+            lbl.grid(row=i, column=0, sticky="w", padx=10, pady=10)
+            
+            ent = ctk.CTkEntry(master=form_frame, width=300)
+            ent.insert(0, valor_default)
+            ent.grid(row=i, column=1, padx=10, pady=10)
+            entries[key] = ent
+
+        def guardar_cambios():
+            nombre = entries['nombre'].get().strip()
+            telefono = entries['telefono'].get().strip()
+            correo = entries['correo'].get().strip()
+            direccion = entries['direccion'].get().strip()
+            
+            if not nombre:
+                messagebox.showerror("Error", "El nombre es obligatorio.")
+                return
+            
+            if self.controller.actualizar_cliente(cliente_id, nombre, telefono, correo, direccion):
+                dialog.destroy()
+                # Actualizar la vista
+                self.controller.actualizar_vista_clientes()
+            else:
+                messagebox.showerror("Error", "No se pudo actualizar el cliente.")
+
+        def cancelar():
+            dialog.destroy()
+
+        # Botones
+        btn_frame = ctk.CTkFrame(master=dialog, fg_color="transparent")
+        btn_frame.pack(pady=15)
+
+        btn_guardar = ctk.CTkButton(master=btn_frame, text="Guardar Cambios", 
+                                command=guardar_cambios, width=140, height=35,
+                                fg_color="#27ae60")
+        btn_guardar.pack(side="left", padx=10)
+
+        btn_cancelar = ctk.CTkButton(master=btn_frame, text="Cancelar", 
+                                    command=cancelar, width=120, height=35,
+                                    fg_color="#95a5a6")
+        btn_cancelar.pack(side="left", padx=10)

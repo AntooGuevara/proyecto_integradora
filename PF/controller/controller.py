@@ -354,3 +354,126 @@ class RentasController:
         except Exception as e:
             print(f"Error en actualización segura: {e}")
         
+
+    # -------------------------
+    # CRUD de Usuarios
+    # -------------------------
+    def mostrar_usuarios_view(self):
+        """Muestra la vista de gestión de usuarios."""
+        if self.rentas_view:
+            # Cambiar a vista de usuarios
+            self.rentas_view._show_usuarios()
+
+    def obtener_usuarios(self):
+        """Obtiene todos los usuarios."""
+        return self.model.obtener_usuarios_db()
+
+    def obtener_usuario(self, usuario_id):
+        """Obtiene un usuario específico."""
+        return self.model.obtener_usuario_por_id(usuario_id)
+
+    def agregar_usuario(self, datos):
+        """Agrega un nuevo usuario."""
+        try:
+            usuario_id = self.model.agregar_usuario(
+                datos.get('usuario'),
+                datos.get('password'),
+                datos.get('email'),
+                datos.get('nombre_completo'),
+                datos.get('rol', 'empleado')
+            )
+            
+            if usuario_id:
+                messagebox.showinfo("Éxito", f"Usuario '{datos.get('usuario')}' creado exitosamente")
+                self.actualizar_vista_usuarios()
+                return True
+            else:
+                messagebox.showerror("Error", "No se pudo crear el usuario o el nombre ya existe")
+                return False
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al crear usuario: {str(e)}")
+            return False
+
+    def actualizar_usuario(self, usuario_id, datos):
+        """Actualiza un usuario existente."""
+        try:
+            if self.model.actualizar_usuario(usuario_id, datos):
+                messagebox.showinfo("Éxito", "Usuario actualizado exitosamente")
+                self.actualizar_vista_usuarios()
+                return True
+            else:
+                messagebox.showerror("Error", "No se pudo actualizar el usuario")
+                return False
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al actualizar usuario: {str(e)}")
+            return False
+
+    def eliminar_usuario(self, usuario_id):
+        """Elimina un usuario."""
+        if usuario_id == 1:
+            messagebox.showerror("Error", "No se puede eliminar al administrador principal")
+            return False
+        
+        confirmacion = messagebox.askyesno(
+            "Confirmar Eliminación",
+            "¿Está seguro de que desea eliminar este usuario?\nEsta acción no se puede deshacer."
+        )
+        
+        if not confirmacion:
+            return False
+        
+        try:
+            if self.model.eliminar_usuario(usuario_id):
+                messagebox.showinfo("Éxito", "Usuario eliminado exitosamente")
+                self.actualizar_vista_usuarios()
+                return True
+            else:
+                messagebox.showerror("Error", "No se pudo eliminar el usuario")
+                return False
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al eliminar usuario: {str(e)}")
+            return False
+
+    def actualizar_vista_usuarios(self):
+        """Actualiza la vista de usuarios."""
+        if self.rentas_view and hasattr(self.rentas_view, 'actualizar_usuarios_view'):
+            self.rentas_view.actualizar_usuarios_view()
+
+    # -------------------------
+    # CRUD Mejorado de Reservaciones
+    # -------------------------
+    def obtener_reservacion(self, reservacion_id):
+        """Obtiene una reservación específica."""
+        return self.model.obtener_reservacion_por_id(reservacion_id)
+
+    def actualizar_reservacion_completa(self, reservacion_id, datos):
+        """Actualiza una reservación existente."""
+        try:
+            if self.model.actualizar_reservacion(reservacion_id, datos):
+                messagebox.showinfo("Éxito", "Reservación actualizada exitosamente")
+                self.actualizar_vista_ordenes()
+                return True
+            else:
+                messagebox.showerror("Error", "No se pudo actualizar la reservación")
+                return False
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al actualizar reservación: {str(e)}")
+            return False
+
+    def buscar_reservaciones(self, filtros):
+        """Busca reservaciones según filtros."""
+        return self.model.buscar_reservaciones(filtros)
+
+    def obtener_reservaciones_con_filtros(self, estado=None, cliente_id=None, fecha_inicio=None, fecha_fin=None):
+        """Obtiene reservaciones con filtros aplicados."""
+        filtros = {}
+        if estado:
+            filtros['estado'] = estado
+        if cliente_id:
+            filtros['cliente_id'] = cliente_id
+        if fecha_inicio:
+            filtros['fecha_inicio'] = fecha_inicio
+        if fecha_fin:
+            filtros['fecha_fin'] = fecha_fin
+        
+        return self.buscar_reservaciones(filtros)
