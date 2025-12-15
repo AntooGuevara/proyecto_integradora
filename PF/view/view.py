@@ -641,7 +641,7 @@ class RentasView:
         self.menu_contextual_clientes.add_separator()
         self.menu_contextual_clientes.add_command(label="📋 Ver Detalles", 
                                                 command=self._ver_detalles_cliente)
-
+#_mostrar_dialogo_nuevo_cliente
         # Vincular eventos
         self.clientes_tree.bind("<Button-3>", self._mostrar_menu_contextual_clientes)  # Clic derecho
         self.clientes_tree.bind("<Double-1>", self._editar_cliente_doble_clic)  # Doble clic
@@ -650,29 +650,178 @@ class RentasView:
         self.controller.actualizar_vista_clientes()
 
     def _mostrar_dialogo_nuevo_cliente(self):
+        """Muestra diálogo para agregar un nuevo cliente - VERSIÓN CORREGIDA CON BOTONES"""
         dialog = ctk.CTkToplevel(self.root)
         dialog.title("Agregar Nuevo Cliente")
-        dialog.geometry("500x400")
+        dialog.geometry("500x550")  # Aumenté la altura para que quepan los botones
         dialog.transient(self.root)
         dialog.grab_set()
+        dialog.resizable(False, False)
 
-        titulo = ctk.CTkLabel(master=dialog, text="Agregar Nuevo Cliente", font=ctk.CTkFont(size=18, weight="bold"))
+        # Título principal
+        titulo = ctk.CTkLabel(
+            master=dialog, 
+            text="Agregar Nuevo Cliente", 
+            font=ctk.CTkFont(size=20, weight="bold")
+        )
         titulo.pack(pady=20)
 
-        form_frame = ctk.CTkFrame(master=dialog)
-        form_frame.pack(pady=10, padx=20, fill="both", expand=True)
+        # Frame principal para el formulario
+        main_frame = ctk.CTkFrame(master=dialog, fg_color="transparent")
+        main_frame.pack(pady=10, padx=30, fill="both", expand=True)
 
-        campos = [("Nombre Completo", "nombre"), ("Teléfono", "telefono"), ("Correo Electrónico", "correo"), ("Dirección", "direccion")]
+        # Frame para los campos del formulario
+        form_frame = ctk.CTkFrame(master=main_frame, fg_color="transparent")
+        form_frame.pack(fill="both", expand=True, pady=(0, 20))
+
+        # Diccionario para almacenar las entradas
         self.cliente_entries = {}
-        for i, (label, key) in enumerate(campos):
-            lbl = ctk.CTkLabel(master=form_frame, text=label + ":", font=ctk.CTkFont(size=12, weight="bold"))
-            lbl.grid(row=i*2, column=0, sticky="w", padx=10, pady=(10, 5))
-            ent = ctk.CTkEntry(master=form_frame, width=300, height=35)
-            ent.grid(row=i*2+1, column=0, sticky="ew", padx=10, pady=(0, 10))
+
+        # Campos del formulario
+        campos = [
+            ("Nombre Completo *", "nombre", "Ej: Juan Pérez"),
+            ("Teléfono", "telefono", "Ej: 1234567890"),
+            ("Correo Electrónico", "correo", "Ej: cliente@email.com"),
+            ("Dirección", "direccion", "Ej: Calle Principal #123")
+        ]
+
+        for i, (label, key, placeholder) in enumerate(campos):
+            # Frame para cada campo
+            field_frame = ctk.CTkFrame(master=form_frame, fg_color="transparent")
+            field_frame.pack(fill="x", pady=10)
+
+            # Etiqueta
+            lbl = ctk.CTkLabel(
+                master=field_frame, 
+                text=label,
+                font=ctk.CTkFont(size=12, weight="bold"),
+                text_color="#333333"
+            )
+            lbl.pack(anchor="w", padx=5, pady=(0, 5))
+
+            # Campo de entrada
+            ent = ctk.CTkEntry(
+                master=field_frame, 
+                width=400, 
+                height=40,
+                placeholder_text=placeholder,
+                corner_radius=8,
+                font=ctk.CTkFont(size=12)
+            )
+            
+            if key == "telefono":
+                # Validar solo números para teléfono
+                ent.bind('<KeyRelease>', lambda e: self._validar_telefono(e.widget))
+            
+            ent.pack(fill="x", padx=5)
+            
+            # Almacenar referencia
             self.cliente_entries[key] = ent
 
-        btn_frame = ctk.CTkFrame(master=dialog, fg_color="transparent")
-        btn_frame.pack(pady=20)
+        # Frame para los botones (¡IMPORTANTE: SEPARADO!)
+        button_frame = ctk.CTkFrame(master=main_frame, fg_color="transparent")
+        button_frame.pack(pady=20, fill="x")
+
+        def guardar_cliente():
+            """Recupera datos y guarda el cliente."""
+            try:
+                nombre = self.cliente_entries['nombre'].get().strip()
+                telefono = self.cliente_entries['telefono'].get().strip()
+                correo = self.cliente_entries['correo'].get().strip()
+                direccion = self.cliente_entries['direccion'].get().strip()
+
+                if not nombre:
+                    messagebox.showerror("Error", "El nombre es obligatorio")
+                    self.cliente_entries['nombre'].focus()
+                    return
+
+                # Validar formato de correo (opcional)
+                if correo and "@" not in correo:
+                    if not messagebox.askyesno("Advertencia", 
+                        "El formato del correo parece incorrecto. ¿Desea continuar?"):
+                        self.cliente_entries['correo'].focus()
+                        return
+
+                # Cerrar diálogo primero
+                dialog.destroy()
+                
+                # Luego procesar en el controller
+                self.controller.agregar_cliente(nombre, telefono, correo, direccion)
+
+            except KeyError as e:
+                messagebox.showerror("Error", f"Falta el campo: {e}")
+            except Exception as e:
+                messagebox.showerror("Error", f"Error al guardar: {str(e)}")
+
+        def cancelar():
+            dialog.destroy()
+
+        # Botón CANCELAR (Izquierda)
+        btn_cancelar = ctk.CTkButton(
+            master=button_frame,
+            text="Cancelar",
+            command=cancelar,
+            width=120,
+            height=45,
+            corner_radius=10,
+            fg_color="#95a5a6",
+            hover_color="#7f8c8d",
+            font=ctk.CTkFont(size=14, weight="bold")
+        )
+        btn_cancelar.pack(side="left", padx=(0, 10))
+
+        # Botón GUARDAR (Derecha)
+        btn_guardar = ctk.CTkButton(
+            master=button_frame,
+            text="Guardar Cliente",
+            command=guardar_cliente,
+            width=140,
+            height=45,
+            corner_radius=10,
+            fg_color="#27ae60",
+            hover_color="#219653",
+            font=ctk.CTkFont(size=14, weight="bold")
+        )
+        btn_guardar.pack(side="right", padx=(10, 0))
+
+        # Asegurar que los botones estén centrados
+        button_frame.grid_columnconfigure(0, weight=1)
+        button_frame.grid_columnconfigure(1, weight=0)
+        button_frame.grid_columnconfigure(2, weight=1)
+
+        # Espaciador para separar los botones
+        spacer = ctk.CTkLabel(master=button_frame, text="", width=50)
+        spacer.pack(side="left", expand=True)
+
+        # Enfocar en el primer campo
+        self.cliente_entries['nombre'].focus()
+
+        # Manejar tecla ESC para cancelar
+        dialog.bind('<Escape>', lambda e: dialog.destroy())
+        
+        # Manejar tecla Enter para guardar
+        dialog.bind('<Return>', lambda e: guardar_cliente())
+
+        # Centrar la ventana en la pantalla
+        dialog.update_idletasks()
+        ancho = dialog.winfo_width()
+        alto = dialog.winfo_height()
+        x = (dialog.winfo_screenwidth() // 2) - (ancho // 2)
+        y = (dialog.winfo_screenheight() // 2) - (alto // 2)
+        dialog.geometry(f'{ancho}x{alto}+{x}+{y}')
+
+        # Forzar a que se muestren todos los widgets
+        dialog.update()
+
+    def _validar_telefono(self, entry_widget):
+        """Valida que solo se ingresen números en el teléfono."""
+        texto = entry_widget.get()
+        # Remover caracteres no numéricos
+        solo_numeros = ''.join(filter(str.isdigit, texto))
+        if texto != solo_numeros:
+            # Actualizar texto sin caracteres no numéricos
+            entry_widget.delete(0, 'end')
+            entry_widget.insert(0, solo_numeros)
 
     def guardar_cliente(self, dialog: ctk.CTkToplevel):
         """Recupera los datos del diálogo de Registro de Cliente."""
@@ -841,7 +990,7 @@ class RentasView:
         except Exception as e:
             print(f"Error ajustando ancho de columnas: {e}")
 ####
-
+#_mostrar_dialogo_nuevo_cliente
     def actualizar_clientes_completos(self, clientes):
         """Actualización segura de la tabla de clientes con ID oculto."""
         try:

@@ -194,17 +194,24 @@ class RentasController:
             messagebox.showerror("Error", "El nombre del cliente es obligatorio")
             return False
 
+        # Verificar si el cliente ya existe
         if self.model.cliente_existe(nombre, telefono, correo):
             messagebox.showwarning("Advertencia", "El cliente ya existe en la base de datos")
             return False
 
+        # Guardar en la base de datos
         cliente_id = self.model.agregar_cliente(nombre, telefono, correo, direccion)
+        
         if cliente_id:
+            # Actualizar la vista después de 100ms
             self.root.after(100, self.actualizar_vista_segura)
-            messagebox.showinfo("Éxito", f"Cliente '{nombre}' agregado correctamente (ID: {cliente_id})")
+            
+            # Mostrar mensaje de éxito
+            messagebox.showinfo("Éxito", 
+                            f"Cliente '{nombre}' agregado correctamente\nID: {cliente_id}")
             return True
         else:
-            messagebox.showerror("Error", "Error al agregar el cliente")
+            messagebox.showerror("Error", "Error al agregar el cliente a la base de datos")
             return False
 
     def actualizar_vista_segura(self):
@@ -335,7 +342,7 @@ class RentasController:
                 # Actualizar contadores
                 if hasattr(self.rentas_view, 'lbl_total_activas'):
                     self.rentas_view.lbl_total_activas.configure(text=str(total_activas))
-                
+                #agregar_cliente
                 if hasattr(self.rentas_view, 'lbl_total_clientes'):
                     self.rentas_view.lbl_total_clientes.configure(text=str(total_clientes))
                 
